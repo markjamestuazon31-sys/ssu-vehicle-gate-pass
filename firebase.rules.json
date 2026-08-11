@@ -1,0 +1,38 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "users": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || (auth.uid === $uid && ((!data.exists() && newData.child('role').val() === 'user') || (data.exists() && newData.child('role').val() === data.child('role').val()))))"
+      }
+    },
+    "applications": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || (query.orderByChild === 'uid' && query.equalTo === auth.uid))",
+      ".indexOn": ["uid", "status", "submittedAt"],
+      "$applicationId": {
+        ".read": "auth != null && (data.child('uid').val() === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || ((!data.exists() && newData.child('uid').val() === auth.uid && newData.child('status').val() === 'submitted') || (data.exists() && data.child('uid').val() === auth.uid && data.child('status').val() === 'submitted' && newData.child('uid').val() === auth.uid && newData.child('status').val() === 'submitted' && newData.child('admin').val() === data.child('admin').val())))"
+      }
+    },
+    "applicationDocuments": {
+      "$uid": {
+        "$applicationId": {
+          ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
+          ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || (auth.uid === $uid && !data.exists() && newData.child('uid').val() === auth.uid))",
+          ".validate": "newData.hasChildren(['uid', 'driversLicense', 'certificateRegistration', 'officialReceipt']) && newData.child('uid').val() === $uid",
+          "driversLicense": {
+            ".validate": "newData.hasChildren(['fileName','mimeType','sizeBytes','originalSizeBytes','width','height','dataUrl','uploadedAt']) && newData.child('mimeType').val() === 'image/jpeg' && newData.child('sizeBytes').isNumber() && newData.child('sizeBytes').val() <= 1048576 && newData.child('dataUrl').isString() && newData.child('dataUrl').val().length <= 1500000"
+          },
+          "certificateRegistration": {
+            ".validate": "newData.hasChildren(['fileName','mimeType','sizeBytes','originalSizeBytes','width','height','dataUrl','uploadedAt']) && newData.child('mimeType').val() === 'image/jpeg' && newData.child('sizeBytes').isNumber() && newData.child('sizeBytes').val() <= 1048576 && newData.child('dataUrl').isString() && newData.child('dataUrl').val().length <= 1500000"
+          },
+          "officialReceipt": {
+            ".validate": "newData.hasChildren(['fileName','mimeType','sizeBytes','originalSizeBytes','width','height','dataUrl','uploadedAt']) && newData.child('mimeType').val() === 'image/jpeg' && newData.child('sizeBytes').isNumber() && newData.child('sizeBytes').val() <= 1048576 && newData.child('dataUrl').isString() && newData.child('dataUrl').val().length <= 1500000"
+          }
+        }
+      }
+    }
+  }
+}
