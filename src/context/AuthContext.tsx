@@ -7,15 +7,25 @@ import {
   signOut,
   updateProfile,
 } from 'firebase/auth';
-import { get, onValue, ref, set, update } from 'firebase/database';
+import { get, onValue, ref, update } from 'firebase/database';
 import { auth, db } from '../firebase';
-import { ApplicantType, UserProfile } from '../types';
+import { ApplicantType, StoredImageDocument, StudentVerificationStatus, UserProfile } from '../types';
+
+type RegisterInput = {
+  fullName: string;
+  email: string;
+  password: string;
+  applicantType: ApplicantType;
+  studentId?: string;
+  studentIdFrontImage?: StoredImageDocument;
+  studentIdBackImage?: StoredImageDocument;
+};
 
 type AuthContextValue = {
   user: User | null;
   profile: UserProfile | null;
   loading: boolean;
-  register: (input: { fullName: string; email: string; password: string; applicantType: ApplicantType }) => Promise<void>;
+  register: (input: RegisterInput) => Promise<void>;
   login: (email: string, password: string) => Promise<UserProfile>;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -23,15 +33,48 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+function normalizeVerificationStatus(
+  raw: Partial<UserProfile>,
+  applicantType: ApplicantType,
+): StudentVerificationStatus {
+  if (
+    raw.verificationStatus === 'pending' ||
+    raw.verificationStatus === 'verified' ||
+    raw.verificationStatus === 'not_required'
+  ) {
+    return raw.verificationStatus;
+  }
+
+  // Existing student accounts with a Student ID remain pending until an
+  // administrator completes verification.
+  if (applicantType === 'Student' && raw.studentId?.trim()) return 'pending';
+  return 'not_required';
+}
+
 function normalizeProfile(firebaseUser: User, raw: Partial<UserProfile>): UserProfile {
   const createdFromAuth = firebaseUser.metadata.creationTime ? Date.parse(firebaseUser.metadata.creationTime) : 0;
+  const applicantType: ApplicantType = raw.applicantType === 'Student' || raw.applicantType === 'Other'
+    ? raw.applicantType
+    : 'SSU Personnel';
+
+  const legacyPhotoSubmitted = raw.studentIdImageSubmitted === true;
+  const frontSubmitted = raw.studentIdFrontImageSubmitted === true || legacyPhotoSubmitted;
+  const backSubmitted = raw.studentIdBackImageSubmitted === true;
+
   return {
     uid: raw.uid || firebaseUser.uid,
     email: raw.email || firebaseUser.email || '',
     fullName: raw.fullName || firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Portal User',
-    applicantType: raw.applicantType === 'Student' || raw.applicantType === 'Other' ? raw.applicantType : 'SSU Personnel',
+    applicantType,
     role: raw.role === 'admin' ? 'admin' : 'user',
     createdAt: typeof raw.createdAt === 'number' ? raw.createdAt : createdFromAuth,
+    studentId: typeof raw.studentId === 'string' && raw.studentId.trim() ? raw.studentId.trim().toUpperCase() : undefined,
+    studentIdImageSubmitted: legacyPhotoSubmitted || (frontSubmitted && backSubmitted),
+    studentIdFrontImageSubmitted: frontSubmitted,
+    studentIdBackImageSubmitted: backSubmitted,
+    verificationStatus: normalizeVerificationStatus(raw, applicantType),
+    verificationReviewedAt: typeof raw.verificationReviewedAt === 'number' ? raw.verificationReviewedAt : undefined,
+    verificationReviewedByUid: typeof raw.verificationReviewedByUid === 'string' ? raw.verificationReviewedByUid : undefined,
   };
 }
 
@@ -118,17 +161,65 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       profile,
       loading,
       async register(input) {
-        const credential = await createUserWithEmailAndPassword(auth, input.email.trim(), input.password);
+        const normalizedEmail = input.email.trim().toLowerCase();
+        const normalizedStudentId = input.applicantType === 'Student'
+          ? input.studentId?.trim().toUpperCase()
+          : undefined;
+
+        if (input.applicantType === 'Student' && !normalizedStudentId) {
+          throw new Error('Student ID is required for student registration.');
+        }
+
+        if (input.applicantType === 'Student' && !input.studentIdFrontImage) {
+          throw new Error('A clear FRONT photo of your Student ID is required for verification.');
+        }
+
+        if (input.applicantType === 'Student' && !input.studentIdBackImage) {
+          throw new Error('A clear BACK photo of your Student ID is required for verification.');
+        }
+
+        const credential = await createUserWithEmailAndPassword(auth, normalizedEmail, input.password);
         await updateProfile(credential.user, { displayName: input.fullName.trim() });
+
         const nextProfile: UserProfile = {
           uid: credential.user.uid,
-          email: credential.user.email ?? input.email.trim(),
+          email: credential.user.email ?? normalizedEmail,
           fullName: input.fullName.trim(),
           applicantType: input.applicantType,
           role: 'user',
           createdAt: Date.now(),
+          verificationStatus: input.applicantType === 'Student' ? 'pending' : 'not_required',
+          ...(normalizedStudentId ? { studentId: normalizedStudentId } : {}),
+          ...(input.applicantType === 'Student'
+            ? {
+                studentIdImageSubmitted: true,
+                studentIdFrontImageSubmitted: true,
+                studentIdBackImageSubmitted: true,
+              }
+            : {}),
         };
-        await set(ref(db, `users/${credential.user.uid}`), nextProfile);
+
+        const databaseUpdates: Record<string, unknown> = {
+          [`users/${credential.user.uid}`]: nextProfile,
+        };
+
+        if (
+          input.applicantType === 'Student' &&
+          input.studentIdFrontImage &&
+          input.studentIdBackImage
+        ) {
+          databaseUpdates[`studentVerificationDocuments/${credential.user.uid}`] = {
+            uid: credential.user.uid,
+            studentIdFrontImage: input.studentIdFrontImage,
+            studentIdBackImage: input.studentIdBackImage,
+            submittedAt: Date.now(),
+          };
+        }
+
+        // Keep the profile lightweight. The two ID photos are stored separately
+        // so the normal users list does not download image data. Both document
+        // photos and the user profile are written together in one database update.
+        await update(ref(db), databaseUpdates);
         setProfile(nextProfile);
       },
       async login(email, password) {
