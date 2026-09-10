@@ -19,6 +19,8 @@ type RegisterInput = {
   studentId?: string;
   studentIdFrontImage?: StoredImageDocument;
   studentIdBackImage?: StoredImageDocument;
+  personnelIdFrontImage?: StoredImageDocument;
+  personnelIdBackImage?: StoredImageDocument;
 };
 
 type AuthContextValue = {
@@ -45,9 +47,14 @@ function normalizeVerificationStatus(
     return raw.verificationStatus;
   }
 
-  // Existing student accounts with a Student ID remain pending until an
-  // administrator completes verification.
+  // Backward compatibility for accounts created before front/back ID verification.
   if (applicantType === 'Student' && raw.studentId?.trim()) return 'pending';
+  if (
+    applicantType === 'SSU Personnel' &&
+    (raw.personnelIdFrontImageSubmitted === true || raw.personnelIdBackImageSubmitted === true)
+  ) {
+    return 'pending';
+  }
   return 'not_required';
 }
 
@@ -60,6 +67,8 @@ function normalizeProfile(firebaseUser: User, raw: Partial<UserProfile>): UserPr
   const legacyPhotoSubmitted = raw.studentIdImageSubmitted === true;
   const frontSubmitted = raw.studentIdFrontImageSubmitted === true || legacyPhotoSubmitted;
   const backSubmitted = raw.studentIdBackImageSubmitted === true;
+  const personnelFrontSubmitted = raw.personnelIdFrontImageSubmitted === true;
+  const personnelBackSubmitted = raw.personnelIdBackImageSubmitted === true;
 
   return {
     uid: raw.uid || firebaseUser.uid,
@@ -72,6 +81,8 @@ function normalizeProfile(firebaseUser: User, raw: Partial<UserProfile>): UserPr
     studentIdImageSubmitted: legacyPhotoSubmitted || (frontSubmitted && backSubmitted),
     studentIdFrontImageSubmitted: frontSubmitted,
     studentIdBackImageSubmitted: backSubmitted,
+    personnelIdFrontImageSubmitted: personnelFrontSubmitted,
+    personnelIdBackImageSubmitted: personnelBackSubmitted,
     verificationStatus: normalizeVerificationStatus(raw, applicantType),
     verificationReviewedAt: typeof raw.verificationReviewedAt === 'number' ? raw.verificationReviewedAt : undefined,
     verificationReviewedByUid: typeof raw.verificationReviewedByUid === 'string' ? raw.verificationReviewedByUid : undefined,
@@ -94,7 +105,9 @@ async function readProfile(firebaseUser: User | null) {
   if (!raw.uid) patch.uid = normalized.uid;
   if (!raw.email) patch.email = normalized.email;
   if (!raw.fullName) patch.fullName = normalized.fullName;
-  if (!raw.applicantType) patch.applicantType = normalized.applicantType;
+  // Do not let a normal user change their account classification through a profile backfill.
+  // Administrators can still backfill a missing applicant type.
+  if (!raw.applicantType && normalized.role === 'admin') patch.applicantType = normalized.applicantType;
   if (typeof raw.createdAt !== 'number') patch.createdAt = normalized.createdAt || Date.now();
   if (Object.keys(patch).length > 0) await update(profileRef, patch);
 
@@ -178,8 +191,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           throw new Error('A clear BACK photo of your Student ID is required for verification.');
         }
 
+        if (input.applicantType === 'SSU Personnel' && !input.personnelIdFrontImage) {
+          throw new Error('A clear FRONT photo of your SSU Personnel ID is required for verification.');
+        }
+
+        if (input.applicantType === 'SSU Personnel' && !input.personnelIdBackImage) {
+          throw new Error('A clear BACK photo of your SSU Personnel ID is required for verification.');
+        }
+
         const credential = await createUserWithEmailAndPassword(auth, normalizedEmail, input.password);
         await updateProfile(credential.user, { displayName: input.fullName.trim() });
+
+        const requiresIdVerification = input.applicantType === 'Student' || input.applicantType === 'SSU Personnel';
+        const createdAt = Date.now();
 
         const nextProfile: UserProfile = {
           uid: credential.user.uid,
@@ -187,14 +211,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           fullName: input.fullName.trim(),
           applicantType: input.applicantType,
           role: 'user',
-          createdAt: Date.now(),
-          verificationStatus: input.applicantType === 'Student' ? 'pending' : 'not_required',
+          createdAt,
+          verificationStatus: requiresIdVerification ? 'pending' : 'not_required',
           ...(normalizedStudentId ? { studentId: normalizedStudentId } : {}),
           ...(input.applicantType === 'Student'
             ? {
                 studentIdImageSubmitted: true,
                 studentIdFrontImageSubmitted: true,
                 studentIdBackImageSubmitted: true,
+              }
+            : {}),
+          ...(input.applicantType === 'SSU Personnel'
+            ? {
+                personnelIdFrontImageSubmitted: true,
+                personnelIdBackImageSubmitted: true,
               }
             : {}),
         };
@@ -212,13 +242,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             uid: credential.user.uid,
             studentIdFrontImage: input.studentIdFrontImage,
             studentIdBackImage: input.studentIdBackImage,
-            submittedAt: Date.now(),
+            submittedAt: createdAt,
           };
         }
 
-        // Keep the profile lightweight. The two ID photos are stored separately
-        // so the normal users list does not download image data. Both document
-        // photos and the user profile are written together in one database update.
+        if (
+          input.applicantType === 'SSU Personnel' &&
+          input.personnelIdFrontImage &&
+          input.personnelIdBackImage
+        ) {
+          databaseUpdates[`personnelVerificationDocuments/${credential.user.uid}`] = {
+            uid: credential.user.uid,
+            personnelIdFrontImage: input.personnelIdFrontImage,
+            personnelIdBackImage: input.personnelIdBackImage,
+            submittedAt: createdAt,
+          };
+        }
+
+        // Keep the profile lightweight. ID photos are stored separately so the
+        // users list does not download image data. Profile + photos are committed
+        // together in one Realtime Database multi-location update.
         await update(ref(db), databaseUpdates);
         setProfile(nextProfile);
       },

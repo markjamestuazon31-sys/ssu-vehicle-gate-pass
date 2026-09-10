@@ -5,12 +5,49 @@
     "users": {
       "$uid": {
         ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
-        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || (auth.uid === $uid && ((!data.exists() && newData.child('role').val() === 'user') || (data.exists() && newData.child('role').val() === data.child('role').val()))))"
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || (auth.uid === $uid && ((!data.exists() && newData.child('uid').val() === auth.uid && newData.child('role').val() === 'user') || (data.exists() && newData.child('role').val() === data.child('role').val() && newData.child('applicantType').val() === data.child('applicantType').val() && newData.child('studentId').val() === data.child('studentId').val() && newData.child('studentIdImageSubmitted').val() === data.child('studentIdImageSubmitted').val() && newData.child('studentIdFrontImageSubmitted').val() === data.child('studentIdFrontImageSubmitted').val() && newData.child('studentIdBackImageSubmitted').val() === data.child('studentIdBackImageSubmitted').val() && newData.child('personnelIdFrontImageSubmitted').val() === data.child('personnelIdFrontImageSubmitted').val() && newData.child('personnelIdBackImageSubmitted').val() === data.child('personnelIdBackImageSubmitted').val() && newData.child('verificationStatus').val() === data.child('verificationStatus').val() && newData.child('verificationReviewedAt').val() === data.child('verificationReviewedAt').val() && newData.child('verificationReviewedByUid').val() === data.child('verificationReviewedByUid').val()))))",
+        "role": {
+          ".validate": "(!data.exists() && newData.val() === 'user') || (data.exists() && newData.val() === data.val())"
+        }
+      },
+      ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'"
+    },
+    "studentVerificationDocuments": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || (auth.uid === $uid && !data.exists() && newData.child('uid').val() === auth.uid))",
+        ".validate": "newData.hasChildren(['uid','submittedAt']) && newData.child('uid').val() === $uid && ((newData.hasChild('studentIdFrontImage') && newData.hasChild('studentIdBackImage')) || newData.hasChild('studentIdImage'))",
+        "studentIdFrontImage": {
+          ".validate": "newData.hasChildren(['fileName','mimeType','sizeBytes','originalSizeBytes','width','height','dataUrl','uploadedAt']) && newData.child('mimeType').val() === 'image/jpeg' && newData.child('sizeBytes').isNumber() && newData.child('sizeBytes').val() <= 1048576 && newData.child('dataUrl').isString() && newData.child('dataUrl').val().length <= 1500000"
+        },
+        "studentIdBackImage": {
+          ".validate": "newData.hasChildren(['fileName','mimeType','sizeBytes','originalSizeBytes','width','height','dataUrl','uploadedAt']) && newData.child('mimeType').val() === 'image/jpeg' && newData.child('sizeBytes').isNumber() && newData.child('sizeBytes').val() <= 1048576 && newData.child('dataUrl').isString() && newData.child('dataUrl').val().length <= 1500000"
+        },
+        "studentIdImage": {
+          ".validate": "newData.hasChildren(['fileName','mimeType','sizeBytes','originalSizeBytes','width','height','dataUrl','uploadedAt']) && newData.child('mimeType').val() === 'image/jpeg' && newData.child('sizeBytes').isNumber() && newData.child('sizeBytes').val() <= 1048576 && newData.child('dataUrl').isString() && newData.child('dataUrl').val().length <= 1500000"
+        }
+      }
+    },
+    "personnelVerificationDocuments": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || (auth.uid === $uid && !data.exists() && newData.child('uid').val() === auth.uid))",
+        ".validate": "newData.hasChildren(['uid','personnelIdFrontImage','personnelIdBackImage','submittedAt']) && newData.child('uid').val() === $uid",
+        "personnelIdFrontImage": {
+          ".validate": "newData.hasChildren(['fileName','mimeType','sizeBytes','originalSizeBytes','width','height','dataUrl','uploadedAt']) && newData.child('mimeType').val() === 'image/jpeg' && newData.child('sizeBytes').isNumber() && newData.child('sizeBytes').val() <= 1048576 && newData.child('dataUrl').isString() && newData.child('dataUrl').val().length <= 1500000"
+        },
+        "personnelIdBackImage": {
+          ".validate": "newData.hasChildren(['fileName','mimeType','sizeBytes','originalSizeBytes','width','height','dataUrl','uploadedAt']) && newData.child('mimeType').val() === 'image/jpeg' && newData.child('sizeBytes').isNumber() && newData.child('sizeBytes').val() <= 1048576 && newData.child('dataUrl').isString() && newData.child('dataUrl').val().length <= 1500000"
+        }
       }
     },
     "applications": {
       ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || (query.orderByChild === 'uid' && query.equalTo === auth.uid))",
-      ".indexOn": ["uid", "status", "submittedAt"],
+      ".indexOn": [
+        "uid",
+        "status",
+        "submittedAt"
+      ],
       "$applicationId": {
         ".read": "auth != null && (data.child('uid').val() === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
         ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || ((!data.exists() && newData.child('uid').val() === auth.uid && newData.child('status').val() === 'submitted') || (data.exists() && data.child('uid').val() === auth.uid && data.child('status').val() === 'submitted' && newData.child('uid').val() === auth.uid && newData.child('status').val() === 'submitted' && newData.child('admin').val() === data.child('admin').val())))"

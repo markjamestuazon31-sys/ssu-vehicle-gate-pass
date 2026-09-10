@@ -13,11 +13,13 @@ import {
   CarFront,
   CheckCircle2,
   Clock3,
+  Eye,
   Search,
   ShieldAlert,
+  XCircle,
 } from 'lucide-react';
 
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 
 import { PortalLayout } from '../components/Layout';
 import { StatusBadge } from '../components/StatusBadge';
@@ -31,14 +33,36 @@ import {
 
 import { formatDateTime } from '../utils/id';
 
+const VALID_STATUSES: ApplicationStatus[] = [
+  'submitted',
+  'under_review',
+  'for_inspection',
+  'approved',
+  'rejected',
+];
+
+const STATUS_LABELS: Record<ApplicationStatus, string> = {
+  submitted: 'Submitted',
+  under_review: 'Under Review',
+  for_inspection: 'For Inspection',
+  approved: 'Approved',
+  rejected: 'Rejected',
+};
+
+function getStatusFilter(rawStatus: string | null): 'all' | ApplicationStatus {
+  if (rawStatus && VALID_STATUSES.includes(rawStatus as ApplicationStatus)) {
+    return rawStatus as ApplicationStatus;
+  }
+
+  return 'all';
+}
+
 export function AdminDashboard() {
   const [applications, setApplications] =
     useState<VehicleApplication[]>([]);
 
-  const [status, setStatus] =
-    useState<'all' | ApplicationStatus>(
-      'all',
-    );
+  const [searchParams] = useSearchParams();
+  const status = getStatusFilter(searchParams.get('status'));
 
   const [search, setSearch] =
     useState('');
@@ -60,13 +84,6 @@ export function AdminDashboard() {
         const rows: VehicleApplication[] =
           [];
 
-        /*
-         * IMPORTANT:
-         * Do not return rows.push().
-         *
-         * rows.push() returns a number,
-         * but Firebase expects void | boolean.
-         */
         snapshot.forEach((child) => {
           rows.push({
             ...child.val(),
@@ -146,9 +163,13 @@ export function AdminDashboard() {
     ).length;
   }
 
+  const activeStatusLabel = status === 'all'
+    ? 'All Applications'
+    : `${STATUS_LABELS[status]} Applications`;
+
   return (
     <PortalLayout admin>
-      <section className="page-heading">
+      <section className="page-heading admin-dashboard-heading">
         <div>
           <span className="eyebrow">
             Administration
@@ -159,95 +180,101 @@ export function AdminDashboard() {
           </h1>
 
           <p>
-            Review applications, record
-            inspections, and issue gate pass
-            information.
+            Review applications, record inspections, and issue gate pass information from one organized workspace.
           </p>
         </div>
       </section>
 
-      <section className="stats-grid five">
-        <div className="stat-card">
+      <section className="stats-grid admin-stat-grid" aria-label="Application summary">
+        <Link
+          to="/admin"
+          className={`stat-card admin-stat-card stat-all ${status === 'all' ? 'is-selected' : ''}`}
+        >
           <CarFront />
 
           <div>
-            <span>Total</span>
-
-            <strong>
-              {applications.length}
-            </strong>
+            <span>Total applications</span>
+            <strong>{applications.length}</strong>
           </div>
-        </div>
+        </Link>
 
-        <div className="stat-card">
+        <Link
+          to="/admin?status=submitted"
+          className={`stat-card admin-stat-card stat-submitted ${status === 'submitted' ? 'is-selected' : ''}`}
+        >
           <Clock3 />
 
           <div>
             <span>Submitted</span>
-
-            <strong>
-              {count('submitted')}
-            </strong>
+            <strong>{count('submitted')}</strong>
           </div>
-        </div>
+        </Link>
 
-        <div className="stat-card">
+        <Link
+          to="/admin?status=under_review"
+          className={`stat-card admin-stat-card stat-under-review ${status === 'under_review' ? 'is-selected' : ''}`}
+        >
+          <Search />
+
+          <div>
+            <span>Under review</span>
+            <strong>{count('under_review')}</strong>
+          </div>
+        </Link>
+
+        <Link
+          to="/admin?status=for_inspection"
+          className={`stat-card admin-stat-card stat-inspection ${status === 'for_inspection' ? 'is-selected' : ''}`}
+        >
           <ShieldAlert />
 
           <div>
-            <span>
-              For inspection
-            </span>
-
-            <strong>
-              {count(
-                'for_inspection',
-              )}
-            </strong>
+            <span>For inspection</span>
+            <strong>{count('for_inspection')}</strong>
           </div>
-        </div>
+        </Link>
 
-        <div className="stat-card">
+        <Link
+          to="/admin?status=approved"
+          className={`stat-card admin-stat-card stat-approved ${status === 'approved' ? 'is-selected' : ''}`}
+        >
           <CheckCircle2 />
 
           <div>
             <span>Approved</span>
-
-            <strong>
-              {count('approved')}
-            </strong>
+            <strong>{count('approved')}</strong>
           </div>
-        </div>
+        </Link>
 
-        <div className="stat-card">
-          <ShieldAlert />
+        <Link
+          to="/admin?status=rejected"
+          className={`stat-card admin-stat-card stat-rejected ${status === 'rejected' ? 'is-selected' : ''}`}
+        >
+          <XCircle />
 
           <div>
             <span>Rejected</span>
-
-            <strong>
-              {count('rejected')}
-            </strong>
+            <strong>{count('rejected')}</strong>
           </div>
-        </div>
+        </Link>
       </section>
 
-      <section className="panel">
-        <div className="panel-heading responsive">
+      <section className="panel admin-applications-panel">
+        <div className="panel-heading responsive admin-applications-heading">
           <div>
-            <h2>
-              Applications
-            </h2>
+            <div className="admin-panel-title-row">
+              <h2>{activeStatusLabel}</h2>
+              <span className="admin-result-count">{filtered.length}</span>
+            </div>
 
             <p>
-              Search by applicant, plate
-              number, reference, or vehicle.
+              Search by applicant, plate number, reference, or vehicle. Use the Application Status menu in the sidebar to change queues.
             </p>
           </div>
 
-          <div className="filter-row">
-            <label className="search-box">
-              <Search size={17} />
+          <div className="admin-application-tools">
+            <label className="search-box admin-application-search">
+              <Search size={18} />
 
               <input
                 type="search"
@@ -258,54 +285,27 @@ export function AdminDashboard() {
                   )
                 }
                 placeholder="Search applications"
+                aria-label="Search applications"
               />
             </label>
 
-            <select
-              value={status}
-              onChange={(event) =>
-                setStatus(
-                  event.target
-                    .value as
-                    | 'all'
-                    | ApplicationStatus,
-                )
-              }
-            >
-              <option value="all">
-                All statuses
-              </option>
-
-              <option value="submitted">
-                Submitted
-              </option>
-
-              <option value="under_review">
-                Under Review
-              </option>
-
-              <option value="for_inspection">
-                For Inspection
-              </option>
-
-              <option value="approved">
-                Approved
-              </option>
-
-              <option value="rejected">
-                Rejected
-              </option>
-            </select>
+            {status !== 'all' && (
+              <Link className={`admin-active-filter filter-${status}`} to="/admin">
+                <span>Queue</span>
+                <strong>{STATUS_LABELS[status]}</strong>
+                <span className="admin-filter-clear">Clear</span>
+              </Link>
+            )}
           </div>
         </div>
 
         {loading ? (
-          <div className="empty-state">
+          <div className="empty-state admin-table-empty-state">
             Loading applications…
           </div>
         ) : (
-          <div className="table-wrap">
-            <table className="data-table">
+          <div className="table-wrap admin-table-wrap">
+            <table className="data-table admin-applications-table">
               <thead>
                 <tr>
                   <th>Reference</th>
@@ -321,81 +321,48 @@ export function AdminDashboard() {
               <tbody>
                 {filtered.map(
                   (application) => (
-                    <tr
-                      key={application.id}
-                    >
+                    <tr key={application.id}>
                       <td>
-                        <strong>
-                          {
-                            application.referenceNo
-                          }
+                        <strong>{application.referenceNo}</strong>
+
+                        <small>
+                          {application.admin?.vrfNo || 'No official VRF yet'}
+                        </small>
+                      </td>
+
+                      <td>
+                        <strong className="admin-applicant-name">
+                          {application.applicant.fullName}
                         </strong>
 
-                        <small>
-                          {application.admin
-                            ?.vrfNo ||
-                            'No official VRF yet'}
-                        </small>
+                        <small>{application.applicant.applicantType}</small>
                       </td>
 
                       <td>
-                        {
-                          application.applicant
-                            .fullName
-                        }
+                        {application.vehicle.vehicleBrand}{' '}
+                        {application.vehicle.model}
 
-                        <small>
-                          {
-                            application.applicant
-                              .applicantType
-                          }
-                        </small>
+                        <small>{application.vehicle.vehicleType}</small>
                       </td>
 
                       <td>
-                        {
-                          application.vehicle
-                            .vehicleBrand
-                        }{' '}
-                        {
-                          application.vehicle
-                            .model
-                        }
-
-                        <small>
-                          {
-                            application.vehicle
-                              .vehicleType
-                          }
-                        </small>
+                        <span className="admin-plate-number">{application.vehicle.plateNo}</span>
                       </td>
 
                       <td>
-                        {
-                          application.vehicle
-                            .plateNo
-                        }
+                        <StatusBadge status={application.status} />
                       </td>
 
                       <td>
-                        <StatusBadge
-                          status={
-                            application.status
-                          }
-                        />
-                      </td>
-
-                      <td>
-                        {formatDateTime(
-                          application.submittedAt,
-                        )}
+                        {formatDateTime(application.submittedAt)}
                       </td>
 
                       <td>
                         <Link
-                          className="text-action"
+                          className="secondary-btn compact admin-review-button"
                           to={`/admin/application/${application.id}`}
                         >
+                          <Eye size={16} />
                           Review
                         </Link>
                       </td>
@@ -406,8 +373,10 @@ export function AdminDashboard() {
             </table>
 
             {filtered.length === 0 && (
-              <div className="empty-state">
-                No matching applications.
+              <div className="empty-state admin-table-empty-state">
+                <Search size={28} />
+                <strong>No matching applications</strong>
+                <span>Try another search or choose a different status from the sidebar.</span>
               </div>
             )}
           </div>

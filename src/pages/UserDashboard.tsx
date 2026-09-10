@@ -139,17 +139,25 @@ export function UserDashboard() {
         </Link>
       </section>
 
-      {profile?.applicantType === 'Student' && profile.verificationStatus !== 'not_required' && (
+      {(profile?.applicantType === 'Student' || profile?.applicantType === 'SSU Personnel') && profile.verificationStatus !== 'not_required' && (
         <section className={`student-verification-banner ${profile.verificationStatus === 'verified' ? 'verified' : 'pending'}`}>
           <div className="student-verification-icon">
             {profile.verificationStatus === 'verified' ? <BadgeCheck size={22} /> : <Clock3 size={22} />}
           </div>
           <div>
-            <strong>{profile.verificationStatus === 'verified' ? 'Student ID verified' : 'Student ID verification pending'}</strong>
-            <p>
+            <strong>
               {profile.verificationStatus === 'verified'
-                ? `Student ID ${profile.studentId || ''} and the submitted front and back ID photos have been verified by the administrator.`
-                : `Student ID ${profile.studentId || ''} and the front and back ID photos were submitted and are waiting for administrator verification.`}
+                ? `${profile.applicantType === 'Student' ? 'Student' : 'Personnel'} ID verified`
+                : `${profile.applicantType === 'Student' ? 'Student' : 'Personnel'} ID verification pending`}
+            </strong>
+            <p>
+              {profile.applicantType === 'Student'
+                ? (profile.verificationStatus === 'verified'
+                  ? `Student ID ${profile.studentId || ''} and the submitted front and back ID photos have been verified by the administrator.`
+                  : `Student ID ${profile.studentId || ''} and the front and back ID photos were submitted and are waiting for administrator verification.`)
+                : (profile.verificationStatus === 'verified'
+                  ? 'The front and back photos of your SSU Personnel ID have been verified by the administrator.'
+                  : 'The front and back photos of your SSU Personnel ID were submitted and are waiting for administrator verification.')}
             </p>
           </div>
         </section>

@@ -2,6 +2,7 @@ export type Role = 'user' | 'admin';
 
 export type ApplicantType = 'SSU Personnel' | 'Student' | 'Other';
 export type StudentVerificationStatus = 'pending' | 'verified' | 'not_required';
+export type IdentityVerificationStatus = StudentVerificationStatus;
 export type OwnershipType = 'Registered Owner' | 'Not Registered Owner with Deed of Sale' | 'Immediate Family';
 export type VehicleType = 'Two-Wheeled Vehicle' | 'Three-Wheeled Vehicle' | 'Four-Wheeled Vehicle';
 export type ApplicationStatus = 'submitted' | 'under_review' | 'for_inspection' | 'approved' | 'rejected';
@@ -17,7 +18,9 @@ export interface UserProfile {
   studentIdImageSubmitted?: boolean;
   studentIdFrontImageSubmitted?: boolean;
   studentIdBackImageSubmitted?: boolean;
-  verificationStatus?: StudentVerificationStatus;
+  personnelIdFrontImageSubmitted?: boolean;
+  personnelIdBackImageSubmitted?: boolean;
+  verificationStatus?: IdentityVerificationStatus;
   verificationReviewedAt?: number;
   verificationReviewedByUid?: string;
 }
@@ -65,6 +68,13 @@ export interface StudentVerificationDocument {
   studentIdBackImage?: StoredImageDocument;
   /** Legacy single-photo field kept for older registrations. */
   studentIdImage?: StoredImageDocument;
+  submittedAt: number;
+}
+
+export interface PersonnelVerificationDocument {
+  uid: string;
+  personnelIdFrontImage?: StoredImageDocument;
+  personnelIdBackImage?: StoredImageDocument;
   submittedAt: number;
 }
 

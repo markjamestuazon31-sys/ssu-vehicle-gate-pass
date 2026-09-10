@@ -16,6 +16,8 @@ export function RegisterPage() {
   const [studentId, setStudentId] = useState('');
   const [studentIdFrontImage, setStudentIdFrontImage] = useState<StoredImageDocument | undefined>();
   const [studentIdBackImage, setStudentIdBackImage] = useState<StoredImageDocument | undefined>();
+  const [personnelIdFrontImage, setPersonnelIdFrontImage] = useState<StoredImageDocument | undefined>();
+  const [personnelIdBackImage, setPersonnelIdBackImage] = useState<StoredImageDocument | undefined>();
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -31,6 +33,12 @@ export function RegisterPage() {
     if (applicantType === 'Student' && !studentIdBackImage) {
       return setError('Upload a clear photo of the BACK of your Student ID.');
     }
+    if (applicantType === 'SSU Personnel' && !personnelIdFrontImage) {
+      return setError('Upload a clear photo of the FRONT of your SSU Personnel ID.');
+    }
+    if (applicantType === 'SSU Personnel' && !personnelIdBackImage) {
+      return setError('Upload a clear photo of the BACK of your SSU Personnel ID.');
+    }
     if (password.length < 6) return setError('Password must be at least 6 characters.');
     if (password !== confirmPassword) return setError('Passwords do not match.');
 
@@ -45,6 +53,8 @@ export function RegisterPage() {
         studentId: applicantType === 'Student' ? studentId : undefined,
         studentIdFrontImage: applicantType === 'Student' ? studentIdFrontImage : undefined,
         studentIdBackImage: applicantType === 'Student' ? studentIdBackImage : undefined,
+        personnelIdFrontImage: applicantType === 'SSU Personnel' ? personnelIdFrontImage : undefined,
+        personnelIdBackImage: applicantType === 'SSU Personnel' ? personnelIdBackImage : undefined,
       });
       navigate(applicantType === 'Student' ? '/dashboard' : '/apply');
     } catch (err) {
@@ -58,12 +68,20 @@ export function RegisterPage() {
   function changeApplicantType(next: ApplicantType) {
     setApplicantType(next);
     setError('');
+
     if (next !== 'Student') {
       setStudentId('');
       setStudentIdFrontImage(undefined);
       setStudentIdBackImage(undefined);
     }
+
+    if (next !== 'SSU Personnel') {
+      setPersonnelIdFrontImage(undefined);
+      setPersonnelIdBackImage(undefined);
+    }
   }
+
+  const requiresIdVerification = applicantType === 'Student' || applicantType === 'SSU Personnel';
 
   return (
     <div className="auth-page registration-auth-page">
@@ -76,8 +94,8 @@ export function RegisterPage() {
         <div className="registration-brand-note">
           <IdCard size={20} />
           <div>
-            <strong>Student verification</strong>
-            <span>Students must submit their Student ID number plus clear front and back photos of the same current ID.</span>
+            <strong>Identity verification</strong>
+            <span>Students and SSU personnel must submit clear front and back photos of their current university ID.</span>
           </div>
         </div>
       </div>
@@ -181,6 +199,41 @@ export function RegisterPage() {
             </section>
           )}
 
+          {applicantType === 'SSU Personnel' && (
+            <section className="registration-section student-id-registration-section personnel-id-registration-section">
+              <div className="registration-section-heading student-id-heading">
+                <span><IdCard size={18} /></span>
+                <div>
+                  <h3>SSU Personnel ID verification</h3>
+                  <p>Upload both sides of your current SSU Personnel ID so the administrator can review your account details.</p>
+                </div>
+                <span className="required-pill">Required</span>
+              </div>
+
+              <div className="student-id-photo-upload-grid">
+                <DocumentUploader
+                  label="Front of Personnel ID"
+                  description="Upload a clear photo of the FRONT side of your current SSU Personnel ID."
+                  value={personnelIdFrontImage}
+                  onChange={setPersonnelIdFrontImage}
+                  required
+                />
+
+                <DocumentUploader
+                  label="Back of Personnel ID"
+                  description="Upload a clear photo of the BACK side of the same current SSU Personnel ID."
+                  value={personnelIdBackImage}
+                  onChange={setPersonnelIdBackImage}
+                  required
+                />
+              </div>
+
+              <div className="student-id-two-photo-note">
+                Both photos are required before you can create an SSU Personnel account.
+              </div>
+            </section>
+          )}
+
           <section className="registration-section account-security-section">
             <div className="registration-section-heading">
               <span><LockKeyhole size={18} /></span>
@@ -232,8 +285,8 @@ export function RegisterPage() {
             <button className="primary-btn full registration-submit-btn" disabled={busy}>
               {busy ? 'Creating account…' : 'Create account'}
             </button>
-            {applicantType === 'Student' && (
-              <small>After registration, your Student ID will show as Pending until an administrator verifies the front and back photos.</small>
+            {requiresIdVerification && (
+              <small>After registration, your university ID will show as Pending until an administrator reviews the front and back photos.</small>
             )}
           </div>
 

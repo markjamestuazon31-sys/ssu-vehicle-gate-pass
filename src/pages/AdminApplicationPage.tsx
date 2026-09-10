@@ -432,40 +432,70 @@ export function AdminApplicationPage() {
                 </div>
               )}
 
-              <label>
-                Application status
+              <fieldset className="admin-status-picker">
+                <legend>Application status</legend>
 
-                <select
-                  value={status}
-                  disabled={busy}
-                  onChange={(e) =>
-                    changeStatus(
-                      e.target
-                        .value as ApplicationStatus,
-                    )
-                  }
-                >
-                  <option value="submitted">
+                <p>
+                  Select the current processing stage. Approval and rejection are kept visually distinct to reduce accidental decisions.
+                </p>
+
+                <div className="admin-status-choice-grid" role="group" aria-label="Application status">
+                  <button
+                    type="button"
+                    className={`admin-status-choice choice-submitted ${status === 'submitted' ? 'is-selected' : ''}`}
+                    disabled={busy}
+                    aria-pressed={status === 'submitted'}
+                    onClick={() => changeStatus('submitted')}
+                  >
+                    <span className="admin-status-choice-dot" />
                     Submitted
-                  </option>
+                  </button>
 
-                  <option value="under_review">
+                  <button
+                    type="button"
+                    className={`admin-status-choice choice-under-review ${status === 'under_review' ? 'is-selected' : ''}`}
+                    disabled={busy}
+                    aria-pressed={status === 'under_review'}
+                    onClick={() => changeStatus('under_review')}
+                  >
+                    <span className="admin-status-choice-dot" />
                     Under Review
-                  </option>
+                  </button>
 
-                  <option value="for_inspection">
+                  <button
+                    type="button"
+                    className={`admin-status-choice choice-inspection ${status === 'for_inspection' ? 'is-selected' : ''}`}
+                    disabled={busy}
+                    aria-pressed={status === 'for_inspection'}
+                    onClick={() => changeStatus('for_inspection')}
+                  >
+                    <span className="admin-status-choice-dot" />
                     For Inspection
-                  </option>
+                  </button>
 
-                  <option value="approved">
+                  <button
+                    type="button"
+                    className={`admin-status-choice choice-approved ${status === 'approved' ? 'is-selected' : ''}`}
+                    disabled={busy}
+                    aria-pressed={status === 'approved'}
+                    onClick={() => changeStatus('approved')}
+                  >
+                    <span className="admin-status-choice-dot" />
                     Approved
-                  </option>
+                  </button>
 
-                  <option value="rejected">
+                  <button
+                    type="button"
+                    className={`admin-status-choice choice-rejected ${status === 'rejected' ? 'is-selected' : ''}`}
+                    disabled={busy}
+                    aria-pressed={status === 'rejected'}
+                    onClick={() => changeStatus('rejected')}
+                  >
+                    <span className="admin-status-choice-dot" />
                     Rejected
-                  </option>
-                </select>
-              </label>
+                  </button>
+                </div>
+              </fieldset>
 
               <div className="form-grid two">
                 <label>
