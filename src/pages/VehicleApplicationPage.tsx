@@ -184,7 +184,6 @@ export function VehicleApplicationPage() {
             <DocumentUploader required label="Certificate of Registration (CR)" description="Upload a readable image of the vehicle Certificate of Registration." value={documents.certificateRegistration} onChange={(value) => setDocumentField('certificateRegistration', value)} />
             <DocumentUploader required label="Official Receipt (OR)" description="Upload a readable image of the current vehicle Official Receipt." value={documents.officialReceipt} onChange={(value) => setDocumentField('officialReceipt', value)} />
           </div>
-          <div className="notice-box"><strong>Realtime Database only</strong><p>No Firebase Storage is used. To keep database reads and writes practical, each image is resized and compressed before it is saved. The document images are stored under a separate applicationDocuments path so dashboard lists do not download every image.</p></div>
         </>}
 
         {step === 4 && <>
