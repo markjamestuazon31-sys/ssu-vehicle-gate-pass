@@ -5,10 +5,11 @@ import { ApplicationDocuments, StoredImageDocument } from '../types';
 import { formatFileSize } from '../utils/image';
 
 const documentDefinitions: Array<{
-  key: 'driversLicense' | 'certificateRegistration' | 'officialReceipt';
+  key: 'driversLicense' | 'driversLicenseBack' | 'certificateRegistration' | 'officialReceipt';
   label: string;
 }> = [
-  { key: 'driversLicense', label: "Driver's License" },
+  { key: 'driversLicense', label: "Driver's License (Front)" },
+  { key: 'driversLicenseBack', label: "Driver's License (Back)" },
   { key: 'certificateRegistration', label: 'Certificate of Registration (CR)' },
   { key: 'officialReceipt', label: 'Official Receipt (OR)' },
 ];
@@ -118,7 +119,7 @@ export function ApplicationDocumentsView({
 
   return (
     <>
-      <div className="submitted-documents-grid">
+      <div className="submitted-documents-grid four-docs">
         {documentDefinitions.map(({ key, label }) => {
           const file = documents[key];
 
@@ -159,7 +160,11 @@ export function ApplicationDocumentsView({
                   </div>
                 </>
               ) : (
-                <div className="missing-document">Not provided</div>
+                <div className="missing-document">
+                  {key === 'driversLicenseBack'
+                    ? 'Not provided (older application submitted before the back photo was required)'
+                    : 'Not provided'}
+                </div>
               )}
             </article>
           );

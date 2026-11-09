@@ -80,7 +80,10 @@ export interface PersonnelVerificationDocument {
 
 export interface ApplicationDocuments {
   uid: string;
+  /** Front of the Driver's License (this was the single license photo in older applications). */
   driversLicense?: StoredImageDocument;
+  /** Back of the Driver's License (not present in older applications). */
+  driversLicenseBack?: StoredImageDocument;
   certificateRegistration?: StoredImageDocument;
   officialReceipt?: StoredImageDocument;
 }

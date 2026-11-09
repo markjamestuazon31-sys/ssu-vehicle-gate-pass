@@ -73,8 +73,8 @@ export function VehicleApplicationPage() {
       if (required.some((value) => !value.trim())) return setError('Please complete all required vehicle and registration information.'), false;
     }
     if (step === 3) {
-      if (!documents.driversLicense || !documents.certificateRegistration || !documents.officialReceipt) {
-        return setError("Please upload clear images of the Driver's License, Certificate of Registration (CR), and Official Receipt (OR)."), false;
+      if (!documents.driversLicense || !documents.driversLicenseBack || !documents.certificateRegistration || !documents.officialReceipt) {
+        return setError("Please upload clear images of the FRONT and BACK of the Driver's License, the Certificate of Registration (CR), and the Official Receipt (OR)."), false;
       }
     }
     return true;
@@ -83,9 +83,9 @@ export function VehicleApplicationPage() {
   async function submit(e: FormEvent) {
     e.preventDefault();
     if (!user) return;
-    if (!documents.driversLicense || !documents.certificateRegistration || !documents.officialReceipt) {
+    if (!documents.driversLicense || !documents.driversLicenseBack || !documents.certificateRegistration || !documents.officialReceipt) {
       setStep(3);
-      return setError('All three required document images must be uploaded before submission.');
+      return setError("All required document images (Driver's License front and back, CR, and OR) must be uploaded before submission.");
     }
     if (!accepted) return setError('You must confirm the declaration before submitting.');
     setBusy(true);
@@ -178,8 +178,9 @@ export function VehicleApplicationPage() {
 
         {step === 3 && <>
           <div className="form-section-title"><div><h2>Required document images</h2><p>Take or upload a clear photo. Images are compressed in your browser, then stored as Base64 data in Firebase Realtime Database.</p></div><FileImage /></div>
-          <div className="document-upload-grid">
-            <DocumentUploader required label="Driver's License" description="Upload a clear photo showing the license information." value={documents.driversLicense} onChange={(value) => setDocumentField('driversLicense', value)} />
+          <div className="document-upload-grid four-docs">
+            <DocumentUploader required label="Driver's License (Front)" description="Upload a clear photo of the FRONT side of the license." value={documents.driversLicense} onChange={(value) => setDocumentField('driversLicense', value)} />
+            <DocumentUploader required label="Driver's License (Back)" description="Upload a clear photo of the BACK side of the same license." value={documents.driversLicenseBack} onChange={(value) => setDocumentField('driversLicenseBack', value)} />
             <DocumentUploader required label="Certificate of Registration (CR)" description="Upload a readable image of the vehicle Certificate of Registration." value={documents.certificateRegistration} onChange={(value) => setDocumentField('certificateRegistration', value)} />
             <DocumentUploader required label="Official Receipt (OR)" description="Upload a readable image of the current vehicle Official Receipt." value={documents.officialReceipt} onChange={(value) => setDocumentField('officialReceipt', value)} />
           </div>
@@ -205,7 +206,8 @@ export function VehicleApplicationPage() {
             <div className="summary-item"><span>OR No.</span><strong>{vehicle.officialReceiptNo}</strong></div>
           </div></div>
           <div className="review-block"><h3>Required documents</h3><div className="review-document-list">
-            <div><CheckCircle2 size={17} /><span>Driver's License</span><strong>{documents.driversLicense ? formatFileSize(documents.driversLicense.sizeBytes) : 'Missing'}</strong></div>
+            <div><CheckCircle2 size={17} /><span>Driver's License (Front)</span><strong>{documents.driversLicense ? formatFileSize(documents.driversLicense.sizeBytes) : 'Missing'}</strong></div>
+            <div><CheckCircle2 size={17} /><span>Driver's License (Back)</span><strong>{documents.driversLicenseBack ? formatFileSize(documents.driversLicenseBack.sizeBytes) : 'Missing'}</strong></div>
             <div><CheckCircle2 size={17} /><span>Certificate of Registration (CR)</span><strong>{documents.certificateRegistration ? formatFileSize(documents.certificateRegistration.sizeBytes) : 'Missing'}</strong></div>
             <div><CheckCircle2 size={17} /><span>Official Receipt (OR)</span><strong>{documents.officialReceipt ? formatFileSize(documents.officialReceipt.sizeBytes) : 'Missing'}</strong></div>
           </div></div>

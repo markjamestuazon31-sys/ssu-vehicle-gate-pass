@@ -5566,3 +5566,23 @@ textarea {
     max-height: 100dvh;
   }
 }
+
+
+/* Driver's License front + back: four document images shown 2 x 2 */
+.document-upload-grid.four-docs,
+.submitted-documents-grid.four-docs {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 760px) {
+  .document-upload-grid.four-docs,
+  .submitted-documents-grid.four-docs {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media print {
+  .submitted-documents-grid.four-docs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
