@@ -110,7 +110,7 @@ export function LoginPage() {
                 setEmail(e.target.value);
                 if (error) setError('');
               }}
-              placeholder="name@ssu.edu.ph"
+              placeholder="Email address"
             />
           </label>
 
@@ -126,7 +126,7 @@ export function LoginPage() {
                 setPassword(e.target.value);
                 if (error) setError('');
               }}
-              placeholder="••••••••"
+              placeholder="Password"
             />
           </label>
 
